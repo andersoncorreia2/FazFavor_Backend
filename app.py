@@ -74,7 +74,6 @@ criar_tabelas()
 # 🆕 NOVO: ROTAS DE AUTENTICAÇÃO E USUÁRIOS
 # ==========================================
 
-
 @app.route("/usuarios", methods=["POST"])
 def cadastrar_usuario():
     dados = request.get_json()
@@ -106,6 +105,22 @@ def cadastrar_usuario():
         return jsonify({"erro": "Esse CPF ou E-mail já está cadastrado!"}), 400
     finally:
         conexao.close()
+
+
+# 🕵️ A NOVA ROTA DO ESPIÃO DE CPF
+@app.route("/verificar_cpf/<cpf_digitado>", methods=["GET"])
+def checar_cpf(cpf_digitado):
+    conexao = conectar_banco()
+    cursor = conexao.cursor()
+    
+    cursor.execute("SELECT cpf FROM usuarios WHERE cpf = ?", (cpf_digitado,))
+    usuario_encontrado = cursor.fetchone()
+    conexao.close()
+    
+    if usuario_encontrado:
+        return jsonify({"existe": True}), 200
+    else:
+        return jsonify({"existe": False}), 200
 
 
 @app.route("/login", methods=["POST"])
@@ -217,7 +232,6 @@ def deletar_carona(id_carona):
 # ==========================================
 # ROTAS DE SOLICITAÇÕES (Logica de Vagas Centralizada)
 # ==========================================
-
 
 @app.route("/solicitacoes", methods=["GET"])
 def listar_solicitacoes():
