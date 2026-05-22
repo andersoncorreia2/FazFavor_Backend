@@ -1,15 +1,12 @@
 import os
 import urllib.parse
-# 🆕 INÍCIO DA ALTERAÇÃO: Importamos a biblioteca do PostgreSQL
 import psycopg2 
 from psycopg2.extras import RealDictCursor
 from psycopg2 import IntegrityError
-# 🆕 FIM DA ALTERAÇÃO
 from flask import Flask, jsonify, request
 
 app = Flask(__name__)
 
-# 🆕 INÍCIO DA ALTERAÇÃO: A conexão agora busca a URL do Render em vez do arquivo local
 def conectar_banco():
     DATABASE_URL = os.environ.get("DATABASE_URL")
     
@@ -18,13 +15,11 @@ def conectar_banco():
         
     conexao = psycopg2.connect(DATABASE_URL)
     return conexao
-# 🆕 FIM DA ALTERAÇÃO
 
 def criar_tabelas():
     conexao = conectar_banco()
     cursor = conexao.cursor()
 
-    # 🆕 INÍCIO DA ALTERAÇÃO: Trocamos AUTOINCREMENT por SERIAL (padrão do PostgreSQL)
     cursor.execute("""
         CREATE TABLE IF NOT EXISTS caronas (
             id SERIAL PRIMARY KEY,
@@ -56,7 +51,6 @@ def criar_tabelas():
             senha TEXT NOT NULL
         )
     """)
-    # 🆕 FIM DA ALTERAÇÃO
 
     conexao.commit()
     cursor.close()
@@ -74,7 +68,6 @@ def cadastrar_usuario():
     conexao = conectar_banco()
     cursor = conexao.cursor()
     try:
-        # 🆕 INÍCIO DA ALTERAÇÃO: Trocamos os '?' por '%s'
         cursor.execute("""
             INSERT INTO usuarios (nome, cpf, email, telefone, veiculo, placa, senha)
             VALUES (%s, %s, %s, %s, %s, %s, %s)
@@ -90,7 +83,6 @@ def cadastrar_usuario():
     finally:
         cursor.close()
         conexao.close()
-        # 🆕 FIM DA ALTERAÇÃO
 
 @app.route("/verificar_cpf/<cpf_digitado>", methods=["GET"])
 def checar_cpf(cpf_digitado):
@@ -110,7 +102,6 @@ def checar_cpf(cpf_digitado):
 def excluir_conta(email_seguro):
     email_real = urllib.parse.unquote(email_seguro)
     conexao = conectar_banco()
-    # 🆕 INÍCIO DA ALTERAÇÃO: RealDictCursor faz o PostgreSQL devolver dados igual ao SQLite
     cursor = conexao.cursor(cursor_factory=RealDictCursor) 
     
     cursor.execute("SELECT nome FROM usuarios WHERE email = %s", (email_real,))
@@ -130,7 +121,6 @@ def excluir_conta(email_seguro):
         cursor.close()
         conexao.close()
         return jsonify({"erro": "Usuário não encontrado."}), 404
-    # 🆕 FIM DA ALTERAÇÃO
 
 @app.route("/login", methods=["POST"])
 def login():
@@ -234,11 +224,10 @@ def pedir_carona():
     cursor.execute("SELECT vagas FROM caronas WHERE id = %s", (carona_id,))
     resultado = cursor.fetchone()
 
+    # 🆕 INÍCIO DA ALTERAÇÃO: Removemos a conta de subtração daqui. O banco de dados não mexe mais no total original!
     if resultado:
         vagas_atuais = int(resultado["vagas"])
         if vagas_atuais > 0:
-            novas_vagas = vagas_atuais - 1
-            cursor.execute("UPDATE caronas SET vagas = %s WHERE id = %s", (str(novas_vagas), carona_id))
             cursor.execute("""
                 INSERT INTO solicitacoes (carona_id, passageiro, status)
                 VALUES (%s, %s, %s)
@@ -247,11 +236,12 @@ def pedir_carona():
             conexao.commit()
             cursor.close()
             conexao.close()
-            return jsonify({"mensagem": "Pedido registrado e vaga reservada!"}), 201
+            return jsonify({"mensagem": "Pedido registrado com sucesso!"}), 201
 
     cursor.close()
     conexao.close()
     return jsonify({"erro": "Não foi possível processar: Carona sem vagas ou inexistente."}), 400
+    # 🆕 FIM DA ALTERAÇÃO
 
 @app.route("/solicitacoes/<int:id_solicitacao>", methods=["PUT"])
 def responder_solicitacao(id_solicitacao):
@@ -261,18 +251,9 @@ def responder_solicitacao(id_solicitacao):
     conexao = conectar_banco()
     cursor = conexao.cursor(cursor_factory=RealDictCursor)
 
-    if novo_status == "Recusado":
-        cursor.execute("SELECT carona_id FROM solicitacoes WHERE id = %s", (id_solicitacao,))
-        solicitacao = cursor.fetchone()
-        if solicitacao:
-            carona_id = solicitacao["carona_id"]
-            cursor.execute("SELECT vagas FROM caronas WHERE id = %s", (carona_id,))
-            carona = cursor.fetchone()
-            if carona:
-                vagas_restauradas = int(carona["vagas"]) + 1
-                cursor.execute("UPDATE caronas SET vagas = %s WHERE id = %s", (str(vagas_restauradas), carona_id))
-
+    # 🆕 INÍCIO DA ALTERAÇÃO: Removemos a matemática de "devolver" vaga, pois o total original nunca mais é alterado.
     cursor.execute("UPDATE solicitacoes SET status = %s WHERE id = %s", (novo_status, id_solicitacao))
+    # 🆕 FIM DA ALTERAÇÃO
 
     conexao.commit()
     cursor.close()
@@ -280,6 +261,6 @@ def responder_solicitacao(id_solicitacao):
     return jsonify({"mensagem": f"Status atualizado para {novo_status}!"}), 200
 
 if __name__ == "__main__":
-    print("🚀 Foguete FazFavor online, agora com motor PostgreSQL!")
+    print("🚀 Foguete FazFavor online, Matemática Corrigida!")
     porta = int(os.environ.get("PORT", 5000))
     app.run(debug=False, host="0.0.0.0", port=porta)
