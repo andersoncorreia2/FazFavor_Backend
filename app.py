@@ -214,7 +214,7 @@ def pedir_carona():
     cursor.execute("SELECT vagas FROM caronas WHERE id = %s", (carona_id,))
     resultado = cursor.fetchone()
 
-    # O código não subtrai mais as vagas da base de dados!
+    # SEM SUBTRAÇÃO DAS VAGAS AQUI!
     if resultado:
         vagas_atuais = int(resultado["vagas"])
         if vagas_atuais > 0:
@@ -248,6 +248,6 @@ def responder_solicitacao(id_solicitacao):
     return jsonify({"mensagem": f"Status atualizado para {novo_status}!"}), 200
 
 if __name__ == "__main__":
-    print("🚀 Foguete FazFavor online, Matemática Corrigida!")
+    print("🚀 Foguete FazFavor online, Matemática Corrigida DEFINITIVAMENTE!")
     porta = int(os.environ.get("PORT", 5000))
     app.run(debug=False, host="0.0.0.0", port=porta)
