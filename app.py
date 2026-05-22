@@ -1,5 +1,6 @@
 import os
 import sqlite3
+import urllib.parse # 🆕 INÍCIO/FIM DA ALTERAÇÃO: Importação adicionada para traduzir o e-mail
 from flask import Flask, jsonify, request
 
 app = Flask(__name__)
@@ -121,6 +122,38 @@ def checar_cpf(cpf_digitado):
         return jsonify({"existe": True}), 200
     else:
         return jsonify({"existe": False}), 200
+
+
+# 🆕 INÍCIO DA ALTERAÇÃO: Rota que permite o app deletar a conta de fato
+@app.route("/usuarios/<email_seguro>", methods=["DELETE"])
+def excluir_conta(email_seguro):
+    # Traduz o e-mail de volta (ex: %40 vira @)
+    email_real = urllib.parse.unquote(email_seguro)
+    
+    conexao = conectar_banco()
+    cursor = conexao.cursor()
+    
+    # Busca o usuário para descobrir o nome dele
+    cursor.execute("SELECT nome FROM usuarios WHERE email = ?", (email_real,))
+    usuario = cursor.fetchone()
+    
+    if usuario:
+        nome_usuario = usuario["nome"]
+        
+        # Apaga os eventos criados por ele
+        cursor.execute("DELETE FROM caronas WHERE motorista = ?", (nome_usuario,))
+        # Apaga os pedidos feitos por ele
+        cursor.execute("DELETE FROM solicitacoes WHERE passageiro = ?", (nome_usuario,))
+        # Apaga a conta dele
+        cursor.execute("DELETE FROM usuarios WHERE email = ?", (email_real,))
+        
+        conexao.commit()
+        conexao.close()
+        return jsonify({"mensagem": "Conta e dados excluídos definitivamente!"}), 200
+    else:
+        conexao.close()
+        return jsonify({"erro": "Usuário não encontrado."}), 404
+# 🆕 FIM DA ALTERAÇÃO
 
 
 @app.route("/login", methods=["POST"])
