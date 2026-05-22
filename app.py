@@ -58,10 +58,6 @@ def criar_tabelas():
 
 criar_tabelas()
 
-# ==========================================
-# ROTAS DE AUTENTICAÇÃO E USUÁRIOS
-# ==========================================
-
 @app.route("/usuarios", methods=["POST"])
 def cadastrar_usuario():
     dados = request.get_json()
@@ -146,9 +142,6 @@ def login():
     else:
         return jsonify({"erro": "Acesso negado: E-mail ou senha inválidos."}), 401
 
-# ==========================================
-# ROTAS DE CARONAS
-# ==========================================
 @app.route("/caronas", methods=["GET"])
 def listar_caronas():
     conexao = conectar_banco()
@@ -194,9 +187,6 @@ def deletar_carona(id_carona):
     conexao.close()
     return jsonify({"mensagem": "Evento e solicitações excluídos!"}), 200
 
-# ==========================================
-# ROTAS DE SOLICITAÇÕES
-# ==========================================
 @app.route("/solicitacoes", methods=["GET"])
 def listar_solicitacoes():
     conexao = conectar_banco()
@@ -224,7 +214,7 @@ def pedir_carona():
     cursor.execute("SELECT vagas FROM caronas WHERE id = %s", (carona_id,))
     resultado = cursor.fetchone()
 
-    # 🆕 INÍCIO DA ALTERAÇÃO: Removemos a conta de subtração daqui. O banco de dados não mexe mais no total original!
+    # O código não subtrai mais as vagas da base de dados!
     if resultado:
         vagas_atuais = int(resultado["vagas"])
         if vagas_atuais > 0:
@@ -241,7 +231,6 @@ def pedir_carona():
     cursor.close()
     conexao.close()
     return jsonify({"erro": "Não foi possível processar: Carona sem vagas ou inexistente."}), 400
-    # 🆕 FIM DA ALTERAÇÃO
 
 @app.route("/solicitacoes/<int:id_solicitacao>", methods=["PUT"])
 def responder_solicitacao(id_solicitacao):
@@ -251,9 +240,7 @@ def responder_solicitacao(id_solicitacao):
     conexao = conectar_banco()
     cursor = conexao.cursor(cursor_factory=RealDictCursor)
 
-    # 🆕 INÍCIO DA ALTERAÇÃO: Removemos a matemática de "devolver" vaga, pois o total original nunca mais é alterado.
     cursor.execute("UPDATE solicitacoes SET status = %s WHERE id = %s", (novo_status, id_solicitacao))
-    # 🆕 FIM DA ALTERAÇÃO
 
     conexao.commit()
     cursor.close()
