@@ -247,6 +247,20 @@ def responder_solicitacao(id_solicitacao):
     conexao.close()
     return jsonify({"mensagem": f"Status atualizado para {novo_status}!"}), 200
 
+@app.route("/solicitacoes/<int:id_solicitacao>", methods=["DELETE"])
+def cancelar_solicitacao(id_solicitacao):
+    conexao = conectar_banco()
+    cursor = conexao.cursor()
+    
+    # Deleta a solicitação específica do banco
+    cursor.execute("DELETE FROM solicitacoes WHERE id = %s", (id_solicitacao,))
+    
+    conexao.commit()
+    cursor.close()
+    conexao.close()
+    
+    return jsonify({"mensagem": "Pedido cancelado pelo passageiro e vaga devolvida!"}), 200
+
 if __name__ == "__main__":
     print("🚀 Foguete FazFavor online, Matemática Corrigida DEFINITIVAMENTE!")
     porta = int(os.environ.get("PORT", 5000))
